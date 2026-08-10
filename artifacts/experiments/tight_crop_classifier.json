@@ -1,0 +1,8 @@
+{
+  "tight_crop_image_accuracy": 0.3827,
+  "tight_crop_track_accuracy": 0.3402,
+  "test_images_with_a_detected_mark": 277,
+  "tracks": 194,
+  "reference_yolo_direct_image_accuracy": 0.3579,
+  "reference_whole_crop_image_accuracy": 0.1761
+}

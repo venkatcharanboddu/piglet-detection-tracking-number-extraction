@@ -1,0 +1,18 @@
+{
+  "A_current_mask": {
+    "image_accuracy": 0.1642,
+    "track_accuracy": 0.1453,
+    "tracks": 234
+  },
+  "B_whole_crop": {
+    "image_accuracy": 0.1761,
+    "track_accuracy": 0.1667,
+    "tracks": 234
+  },
+  "C_rotation_tta": {
+    "image_accuracy": 0.1761,
+    "track_accuracy": 0.1667,
+    "tracks": 234
+  },
+  "random_baseline": 0.0769
+}

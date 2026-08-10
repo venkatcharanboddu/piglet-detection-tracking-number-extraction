@@ -1,0 +1,23 @@
+{
+  "training_images": 41,
+  "class_counts": {
+    "10": 6,
+    "11": 7,
+    "12": 8,
+    "13": 7,
+    "14": 1,
+    "17": 1,
+    "2": 5,
+    "3": 3,
+    "4": 3,
+    "5": 5,
+    "6": 3,
+    "7": 3,
+    "8": 6,
+    "9": 3
+  },
+  "validation_images": 18,
+  "validation_accuracy": 0.1111111111111111,
+  "validation_coverage_at_threshold": 0.0,
+  "calibrated_threshold": 0.65
+}

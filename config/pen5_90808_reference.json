@@ -1,0 +1,14 @@
+{
+  "video_key": "pen5_90808_reference",
+  "frame_width": 3072,
+  "frame_height": 1728,
+  "zones": {
+    "FEEDER": [
+      [340, 160],
+      [500, 160],
+      [510, 430],
+      [330, 430]
+    ]
+  },
+  "note": "Draft from the representative first frame; verify with mark-roi before production."
+}

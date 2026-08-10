@@ -1,0 +1,49 @@
+# Virtual env / caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.DS_Store
+*.egg-info/
+dist/
+build/
+
+# Large analyze / sample outputs (GB of crops and videos)
+artifacts/results/
+artifacts/results old/
+artifacts/label_samples/
+artifacts/pen4_trial/
+artifacts/smoke_pen4/
+artifacts/smoke_pen4_clean/
+artifacts/identified_smoke_pen4/
+artifacts/augmentation_smoke/
+artifacts/detection_review/
+artifacts/reference_frames/
+
+# Regenerable YOLO / digit training image datasets
+artifacts/digit_dataset/
+artifacts/digit_dataset_stage1/
+artifacts/digit_dataset_stage2/
+artifacts/mark_boxes/dataset/
+artifacts/mark_boxes/digit_dataset/
+
+# Large model weights (keep CSVs / small metrics only)
+artifacts/models/
+runs/
+
+# Downloaded base YOLO checkpoints
+/yolov8n.pt
+/yolov8s.pt
+
+# Local download caches
+artifacts/.matplotlib/
+artifacts/.easyocr/
+artifacts/.torch/
+
+# Editor / OS
+.idea/
+.vscode/
+*.bak

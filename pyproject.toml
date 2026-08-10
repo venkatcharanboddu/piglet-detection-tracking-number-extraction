@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "piglet-feeding-identity"
+version = "0.1.0"
+description = "Detect, track, and identify piglets at configurable feeding areas."
+requires-python = ">=3.9"
+dependencies = [
+  "joblib>=1.3",
+  "numpy>=1.24,<3",
+  "opencv-python>=4.8",
+  "openpyxl>=3.1",
+  "pandas>=2.0",
+  "Pillow>=10",
+  "scikit-learn>=1.3",
+  "torchvision>=0.18",
+  "easyocr>=1.7",
+  "ultralytics>=8.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+trocr = [
+  "transformers>=4.45,<5",
+  "safetensors>=0.4",
+  "sentencepiece>=0.2",
+  "protobuf>=4.25",
+]
+
+[project.scripts]
+piglet-id = "piglet_identity.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"

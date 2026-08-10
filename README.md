@@ -1,93 +1,315 @@
-# Piglet_Detection_Tracking_Number_Extraction
+# Piglet feeding identity
 
+**Full CLI reference:** [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) — every command, parameter, and default path.
 
+This project replaces the stateful notebook pipeline with reproducible commands. It:
 
-## Getting started
+1. inventories customer videos and selects a validation subset;
+2. saves feeder polygons per camera/video;
+3. detects and tracks pigs, records feeding events, and saves best back-mark crops;
+4. prepares a roster-linked manual labeling file;
+5. trains a constrained mark classifier and combines several frame predictions per track;
+6. exports event CSVs, review videos, and measurable evaluation results.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+The original notebook and model runs in the parent directory are not modified.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Short workflow
 
-## Add your files
+These commands use the fixed `latest-data` paths and preserve saved annotations:
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```bash
+piglet-id prepare
+piglet-id label
+piglet-id train
+piglet-id mark "/path/inside/latest-data/video.mp4" pen4-view1
+piglet-id analyze "/path/inside/latest-data/video.mp4" pen4-view1
 ```
-cd existing_repo
-git remote add origin https://git.informatik.uni-rostock.de/ns2411/piglet_detection_tracking_number_extraction.git
-git branch -M main
-git push -uf origin main
+
+Use a new profile name, such as `pen4-view2`, whenever the camera or feeder view changes. `analyze`
+uses the notebook detector (`train-3` / YOLOv8s), BoT-SORT, `imgsz=1280`, and writes under
+`artifacts/results/`.
+
+Number reading order:
+1. fast ink-shape matching against `Pigs marking (1)` labels;
+2. augmented classifier fallback;
+3. EasyOCR only on feeding-track best crops at the end (slow, used sparingly).
+
+Annotated boxes show `#number` when a mark is read during the run.
+
+### Commands by situation
+
+First setup (run once):
+
+```bash
+piglet-id prepare
+piglet-id label
+piglet-id train
 ```
 
-## Integrate with your tools
+`prepare` reads only `latest-data/Pigs marking (1)` and preserves existing annotations. `label`
+skips images already labeled, so it does not ask for them again.
 
-* [Set up project integrations](https://git.informatik.uni-rostock.de/ns2411/piglet_detection_tracking_number_extraction/-/settings/integrations)
+`train` creates rotated (-30�, +30�, 90�, 180�, 270�), perspective-distorted,
+blurred/downscaled, and lighting-adjusted copies in memory. It does not write duplicate images and
+does not mirror digits. Validation images remain unaugmented and are not mixed into training.
 
-## Collaborate with your team
+For a new video with an already configured camera view:
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+```bash
+piglet-id analyze "/path/inside/latest-data/new-video.mp4" pen4-view1
+```
 
-## Test and Deploy
+`analyze` now requires at least **0.35 YOLO confidence** by default before a detection can become a
+track or identity crop. This reduces empty-feeder/non-pig crops. Override it only when testing,
+for example `--confidence 0.45` for stricter filtering. A higher threshold can also miss difficult
+or partly hidden piglets, so validate it on the annotated 30-minute video.
 
-Use the built-in continuous integration in GitLab.
+On CPU, a full ~30 minute video can take a long time. Use progress lines in the terminal,
+`--max-frames 1000` for a quick check, or `--fast` (640px YOLO, no review MP4):
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```bash
+piglet-id analyze "VIDEO" pen4-view1 --fast --max-frames 3000
+```
 
-***
+The old `--ocr` flag is retained as an alias for `--identity-method easyocr`.
 
-# Editing this README
+## TrOCR: train and compare identity approaches
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+The optional TrOCR reader is a small sequence recognizer fine-tuned on the existing numeric
+`pig_id` labels. Label the **whole visible number** (`7`, `10`, `12`, etc.); individual digit boxes
+or a fake piglet `0` class are not needed. The label `10` teaches the model that `0` is a valid
+character. Every numeric row with `status=labeled` is used regardless of the visibility field;
+`unknown`, `ambiguous`, and `skip` rows are excluded. Visibility is therefore optional, but do not
+assign a numeric ID when the number is not actually readable—the OCR model would learn background
+or blur as that number.
 
-## Suggestions for a good README
+Install the optional dependency and train once:
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```bash
+python -m pip install -e ".[trocr]"
+piglet-id train-ocr
+```
 
-## Name
-Choose a self-explaining name for your project.
+The default model is written to `artifacts/models/trocr_piglet_digits/`. Training splits complete
+tracks rather than random nearby frames, which reduces train/validation leakage. The current crop
+labels come mainly from one video, so the reported validation score is not evidence of accuracy on
+new dates/views; label and hold out at least one additional video before production use.
+Read `piglet_ocr_metrics.json` before using the model. TrOCR predictions are kept as candidates
+unless held-out exact-match accuracy reaches 80%, preventing a confidently wrong experimental
+model from becoming a confirmed feeding identity.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Choose one identity method without changing tracking:
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```bash
+piglet-id analyze "VIDEO" PROFILE --identity-method mark
+piglet-id analyze "VIDEO" PROFILE --identity-method classifier
+piglet-id analyze "VIDEO" PROFILE --identity-method trocr
+piglet-id analyze "VIDEO" PROFILE --identity-method easyocr
+piglet-id analyze "VIDEO" PROFILE --identity-method hybrid
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+`hybrid` is the existing mark-match-then-classifier behavior. OCR runs on the saved best crops
+after YOLO/BoT-SORT tracking, so it does not reduce detector frame rate. TrOCR tries the isolated
+paint region at four quarter-turn rotations and rejects outputs not present in the roster.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+For a fair single-pass comparison, use:
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+```bash
+piglet-id analyze "VIDEO" PROFILE --identity-method compare --no-video
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+This runs mark matching, classifier, and TrOCR on the same crops and adds separate
+`mark_*`, `classifier_*`, and `trocr_*` columns to both the crop manifest and feeding-event CSV.
+The normal `pig_id` columns retain the existing hybrid result. EasyOCR is excluded from `compare`
+because it is much slower; run `--identity-method easyocr` separately if required.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+For a changed camera or feeder view, mark a new profile once and then reuse it:
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+```bash
+piglet-id mark "/path/inside/latest-data/new-view-video.mp4" pen4-view2
+piglet-id analyze "/path/inside/latest-data/new-view-video.mp4" pen4-view2
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+When new marking photos are added to `latest-data/Pigs marking (1)`:
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```bash
+piglet-id prepare
+piglet-id label
+piglet-id train
+```
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+To add **video crops** from an analyze run into the same label file (then fix wrong IDs):
 
-## License
-For open source projects, say how it is licensed.
+```bash
+piglet-id prepare --crops "artifacts/results/VIDEO_STEM/identity_crops"
+```
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+For **much smaller** labeling sets (recommended), export **one best back crop per tracker ID**
+anywhere in the video — feeding area not required:
+
+```bash
+piglet-id sample-crops "/path/inside/latest-data/your-video.mp4" pen4-20260716-1430 \
+  --confidence 0.35 --fast
+```
+
+Output: `artifacts/label_samples/<video-stem>/track_<id>_f<frame>.jpg` plus `label_crops.csv`.
+Default **training** profile keeps up to **3** ranked crops per track (sharpness + ink bonus),
+with milder filters so you get more labeling candidates (`--min-crop-quality` default `35`).
+Use `--crop-profile strict` for the old hard ink/edge/multi-pig gates, or `--crops-per-track 5`
+for even more. Check `summary.json` → `crop_filter_rejected` and `label_crops`. Still skip
+unreadable images in `label` — quantity is for candidates; only clear digits go into training.
+
+After running `sample-crops` on several videos:
+
+```bash
+piglet-id prepare --crops-root artifacts/label_samples
+piglet-id label
+```
+
+Use quotes around paths with `#` or spaces; do not backslash-escape inside quotes.
+Only label crops where the painted number is clearly visible; set others to `skip`.
+Then `piglet-id label`, `piglet-id train`, and re-run `piglet-id analyze`.
+
+`piglet-id label` does not ask for visibility by default and permanently skips rows marked `s`,
+`ss`, Enter, or `skip`. Re-running `prepare` fixes accidental `ss` typed as a pig ID.
+
+Only the newly added photos require labels. Retraining is not needed for ordinary new videos when
+the marking-photo set has not changed.
+
+Identity output contains both `pig_id` (confirmed above the calibrated threshold) and
+`candidate_pig_id` (experimental best guess even when confidence is low). Use candidates only for
+visual review, not final feeding reports.
+
+## Why this is not plain OCR
+
+The marks are hand-painted, curved, blurred, and sometimes stylized. Full-frame OCR would
+produce plausible but wrong numbers. This pipeline classifies tight dorsal crops and returns
+`unknown` unless several good frames agree above a confidence threshold.
+
+## Install
+
+Python 3.9+ is supported.
+
+```bash
+cd piglet-detection-main
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+```
+
+## 1. Inventory and validation subset
+
+```bash
+piglet-id inventory ../latest-data \
+  --output artifacts/video_manifest.csv \
+  --subset-output artifacts/representative_subset.csv \
+  --per-pen 3
+```
+
+The default subset contains three date/size-stratified files per pen. Review
+`representative_subset.csv` before expensive processing.
+
+## 2. Mark a feeding ROI
+
+Use a narrow polygon around the physical feeding-contact area. Make one JSON for each changed
+camera view. Left-click at least three points, Enter accepts a polygon, R resets, and Esc cancels.
+
+```bash
+piglet-id mark-roi "/path/to/video.mp4" \
+  --zones LEFT_FEEDER RIGHT_FEEDER \
+  --output config/pen5_view1.json
+```
+
+Unlike the old notebook, the production run always loads a saved ROI; coordinates are scaled when
+video resolution changes.
+
+## 3. Benchmark the existing detectors
+
+```bash
+piglet-id benchmark-detection \
+  --videos "/path/to/pen4.mp4" "/path/to/pen5.mp4" \
+  --weights ../runs/detect/train-2/weights/best.pt ../runs/detect/train-3/weights/best.pt \
+  --output artifacts/detection_review
+```
+
+Inspect the generated images and fill `actual_count`, `false_positives`, and `missed_pigs` in
+`detection_review.csv`, then:
+
+```bash
+piglet-id score-detection artifacts/detection_review/detection_review.csv \
+  --output artifacts/detection_metrics.json
+```
+
+Fine-tune YOLO only when the reviewed precision/recall shows it is necessary.
+
+## 4. Detect, track, and extract feeding events
+
+Start with a short smoke run:
+
+```bash
+piglet-id run "/path/to/video.mp4" \
+  --weights ../runs/detect/train-3/weights/best.pt \
+  --roi config/pen5_view1.json \
+  --output artifacts/smoke \
+  --max-frames 500
+```
+
+Outputs include:
+
+- `*_feeding_events.csv` with frame and real-time timestamps;
+- `*_annotated.mp4`;
+- `identity_crops/<video>/` containing only the best sharp crops per track;
+- `*_crop_manifest.csv` and `*_summary.json`.
+
+Track IDs are temporary tracker identifiers, not pig numbers.
+
+## 5. Manual identity labeling
+
+```bash
+piglet-id prepare-labeling \
+  --workbook "../latest-data/Piglet numbers_1st run_02.07.-23.07. (1).xlsx" \
+  --marking-photos "../latest-data/Pigs marking (1)" \
+  --output artifacts/identity_labeling
+```
+
+Follow `artifacts/identity_labeling/LABELING.md`. You can edit the CSV in a spreadsheet or run:
+
+```bash
+piglet-id label artifacts/identity_labeling/identity_labels.csv
+```
+
+By default, only images in `latest-data/Pigs marking (1)` are included. Re-running
+`prepare-labeling` preserves labels already saved in the same output CSV, so each image is labeled
+only once. Generated video crops are included only when `--crops <directory>` is explicitly passed.
+
+Images without a readable painted mark must be `unknown`, `ambiguous`, or `skip`. Labels should
+cover multiple dates/videos for each ID. Do not report model accuracy until held-out video sources
+are labeled.
+
+## 6. Train identity and rerun
+
+```bash
+piglet-id train-identity artifacts/identity_labeling/identity_labels.csv \
+  --output artifacts/models/mark_classifier.joblib
+
+piglet-id run "/path/to/video.mp4" \
+  --weights ../runs/detect/train-3/weights/best.pt \
+  --roi config/pen5_view1.json \
+  --identity-model artifacts/models/mark_classifier.joblib \
+  --output artifacts/identified
+```
+
+The classifier rejects weak single-frame guesses and uses track-level consensus.
+
+## 7. End-to-end evaluation
+
+Manually create a ground-truth event CSV with `zone`, `start_frame`, `end_frame`, and `pig_id`, then:
+
+```bash
+piglet-id evaluate-events artifacts/identified/video_feeding_events.csv \
+  artifacts/ground_truth_events.csv --output artifacts/event_metrics.json
+```
+
+Expand to all 150 videos only after both pens meet agreed thresholds for event recall, identity
+accuracy, and non-`unknown` coverage. Missing Pen 6 videos and July 20�21 recordings cannot be
+recovered by code and should be requested from the customer if required.

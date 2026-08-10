@@ -1,0 +1,44 @@
+{
+  "holdout": "2026-07-16",
+  "train_images": 1360,
+  "holdout_images": 335,
+  "classes": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "6",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "17"
+  ],
+  "majority_baseline": 0.1880597014925373,
+  "results": [
+    {
+      "variant": "masked_128 (current)",
+      "crop_accuracy": 0.1552,
+      "track_accuracy": 0.1624,
+      "tracks": 234,
+      "mean_confidence": 0.325
+    },
+    {
+      "variant": "full_crop_224",
+      "crop_accuracy": 0.1463,
+      "track_accuracy": 0.1667,
+      "tracks": 234,
+      "mean_confidence": 0.332
+    },
+    {
+      "variant": "full_crop_224 + rot_aug",
+      "crop_accuracy": 0.1642,
+      "track_accuracy": 0.1923,
+      "tracks": 234,
+      "mean_confidence": 0.516
+    }
+  ]
+}
