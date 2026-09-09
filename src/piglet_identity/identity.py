@@ -315,6 +315,7 @@ class IdentityModel:
         digit_weights_path: Optional[Path] = None,
         digit_confidence: float = 0.25,
         digit_imgsz: int = 320,
+        digit_device: str = "cpu",
     ):
         import joblib
 
@@ -325,6 +326,7 @@ class IdentityModel:
         self.digit_weights_path = digit_weights_path
         self.digit_confidence = digit_confidence
         self.digit_imgsz = digit_imgsz
+        self.digit_device = digit_device
         self._trocr_reader = None
         self._digit_model = None
         self.model = None
@@ -389,6 +391,7 @@ class IdentityModel:
             image,
             imgsz=self.digit_imgsz,
             conf=self.digit_confidence,
+            device=self.digit_device,
             verbose=False,
         )[0]
         detections = []

@@ -38,6 +38,12 @@ runs/
 /yolov8n.pt
 /yolov8s.pt
 
+# Raw video data (too large for GitLab 200 MiB pack limit; transfer via scp/rsync)
+data/**/*.mp4
+data/**/*.avi
+data/**/*.mov
+data/**/*.mkv
+
 # Local download caches
 artifacts/.matplotlib/
 artifacts/.easyocr/

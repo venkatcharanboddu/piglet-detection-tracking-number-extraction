@@ -461,6 +461,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="YOLO digit detector weights for --identity-method digits",
     )
+    analyze.add_argument(
+        "--device",
+        choices=("auto", "mps", "cuda", "cpu"),
+        default="auto",
+        help="Inference device: auto prefers Apple MPS, then CUDA, else CPU",
+    )
+    analyze.add_argument(
+        "--output",
+        type=_path,
+        help="Output directory for this video (default: artifacts/results/<video-stem>)",
+    )
     analyze.add_argument("--imgsz", type=int, help="YOLO input size (default 960, fast uses 640)")
     analyze.add_argument(
         "--track-min-votes",
@@ -680,7 +691,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         if not roi_path.exists():
             raise RuntimeError(f"Missing ROI profile. Run: piglet-id mark VIDEO {args.profile}")
         model_path = DEFAULT_MODEL if DEFAULT_MODEL.exists() else None
-        output = PROJECT_ROOT / "artifacts" / "results" / args.video.stem
+        output = args.output or (PROJECT_ROOT / "artifacts" / "results" / args.video.stem)
         imgsz = args.imgsz or (640 if args.fast else 960)
         identity_method = "easyocr" if args.ocr else args.identity_method
         digit_weights = args.digit_weights or (
@@ -708,6 +719,7 @@ def main(argv: Optional[List[str]] = None) -> None:
                 identity_method=identity_method,
                 trocr_model_path=args.trocr_model,
                 digit_weights_path=digit_weights,
+                device=args.device,
                 identity_during_video=False,
                 write_annotated_video=not (args.fast or args.no_video),
                 strict_identity_crops=not args.relaxed_crops,

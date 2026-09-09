@@ -39,6 +39,8 @@ class PipelineConfig:
     identity_method: str = "hybrid"
     trocr_model_path: Optional[Path] = None
     digit_weights_path: Optional[Path] = None
+    # auto | mps | cuda | cpu — auto prefers Apple MPS, then CUDA, else CPU
+    device: str = "auto"
     identity_during_video: bool = False
     write_annotated_video: bool = True
     progress_every: int = 200
@@ -50,6 +52,25 @@ class PipelineConfig:
     min_ink_fraction: Optional[float] = None
     track_vote_threshold: Optional[float] = None
     track_min_votes: Optional[int] = None
+
+
+def resolve_inference_device(requested: str = "auto") -> str:
+    """Pick Ultralytics device string. Prefer MPS on Apple Silicon when available."""
+    choice = (requested or "auto").strip().lower()
+    if choice not in {"auto", "mps", "cuda", "cpu"}:
+        raise ValueError(f"Unsupported device {requested!r}; use auto|mps|cuda|cpu")
+    if choice != "auto":
+        return choice
+    try:
+        import torch
+
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
+        if torch.cuda.is_available():
+            return "0"
+    except Exception:
+        pass
+    return "cpu"
 
 
 def _crop_filter_config(config: PipelineConfig) -> CropFilterConfig:
@@ -204,6 +225,7 @@ def run_pipeline(
             max_gap_frames=max(0, round(config.max_gap_seconds * fps)),
         )
     detector = YOLO(str(detector_weights))
+    device = resolve_inference_device(config.device)
     identity_model = None
     if not config.label_sample_only:
         identity_model = IdentityModel(
@@ -212,6 +234,7 @@ def run_pipeline(
             method=config.identity_method,
             trocr_model_path=config.trocr_model_path,
             digit_weights_path=config.digit_weights_path,
+            digit_device=device,
         )
     candidates: Dict[int, List[tuple]] = defaultdict(list)
     live_ids: Dict[int, IdentityPrediction] = {}
@@ -235,7 +258,8 @@ def run_pipeline(
     limit = config.max_frames if config.max_frames is not None else frame_count
     if config.progress_every > 0:
         print(
-            f"Processing up to {limit} frames (YOLO imgsz={config.imgsz}, CPU)...",
+            f"Processing up to {limit} frames "
+            f"(YOLO imgsz={config.imgsz}, device={device})...",
             flush=True,
         )
 
@@ -247,6 +271,7 @@ def run_pipeline(
         conf=config.confidence,
         iou=config.iou,
         imgsz=config.imgsz,
+        device=device,
         verbose=False,
     )
     try:
@@ -601,6 +626,7 @@ def run_pipeline(
         "strict_identity_crops": config.strict_identity_crops,
         "crop_profile": config.crop_profile,
         "crops_per_track": config.best_crops_per_track,
+        "device": resolve_inference_device(config.device),
         "crop_filter_rejected": dict(crop_filter_stats),
     }
     summary_name = (
