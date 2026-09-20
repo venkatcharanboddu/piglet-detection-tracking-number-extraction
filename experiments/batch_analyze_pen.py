@@ -14,7 +14,7 @@ Does not modify the piglet-id package. Results are written by analyze to:
 
 Example (one day, Mac GPU, CSV + annotated video):
   python experiments/batch_analyze_pen.py \\
-    "/Users/vineelap/Documents/piglets_detection/latest-data/Pen5_90808" \\
+    "/path/to/latest-data/Pen5_90808" \\
     --profile pen5_90808_reference \\
     --day 20260716 \\
     --device mps \\
