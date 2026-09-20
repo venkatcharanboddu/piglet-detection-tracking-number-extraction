@@ -14,6 +14,8 @@ build/
 # Large analyze / sample outputs (GB of crops and videos)
 artifacts/results/
 artifacts/results old/
+# Keep compact metrics for GitHub:
+# artifacts/results_summary/  (tracked)
 artifacts/label_samples/
 artifacts/pen4_trial/
 artifacts/smoke_pen4/

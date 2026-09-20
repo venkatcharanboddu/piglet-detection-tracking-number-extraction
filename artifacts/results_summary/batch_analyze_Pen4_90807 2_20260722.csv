@@ -1,0 +1,13 @@
+index,video,status,seconds,returncode
+1,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__12_14_00+2026-07-22__12_30_00#S#H.mp4,ok,31.7,0
+2,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__12_30_05+2026-07-22__12_33_22#S#H.mp4,ok,72.3,0
+3,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__13_04_05+2026-07-22__13_30_01#S#H.mp4,ok,806.0,0
+4,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__13_30_06+2026-07-22__14_00_01#S#H.mp4,ok,879.0,0
+5,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__14_00_06+2026-07-22__14_30_01#S#H.mp4,ok,883.4,0
+6,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__14_30_06+2026-07-22__15_00_01#S#H.mp4,ok,859.7,0
+7,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__15_00_06+2026-07-22__15_30_01#S#H.mp4,ok,750.7,0
+8,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__15_30_06+2026-07-22__16_00_02#S#H.mp4,ok,1482.0,0
+9,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__16_00_07+2026-07-22__16_30_02#S#H.mp4,ok,736.7,0
+10,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__16_30_07+2026-07-22__17_00_02#S#H.mp4,ok,1012.1,0
+11,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__17_00_07+2026-07-22__17_30_02#S#H.mp4,ok,738.4,0
+12,/Users/vineelap/Documents/piglets_detection/latest-data/Pen4_90807 2/20260722/2026-07-22__17_30_07+2026-07-22__18_00_02#S#H.mp4,ok,12712.1,0

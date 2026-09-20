@@ -1,0 +1,25 @@
+{
+  "video": "/Users/vineelap/Documents/piglets_detection/latest-data/Pen5_11_July/2026-07-11__15_30_05#M.mp4",
+  "fps": 10.994435102559086,
+  "frames_reported": 19712,
+  "frames_processed": 19712,
+  "detections": 210777,
+  "tracks": 2058,
+  "identity_crop_rows": 417,
+  "label_crops": 0,
+  "feeding_events": 6,
+  "identified_events": 0,
+  "label_sample_only": false,
+  "skipped_blurry_tracks": 0,
+  "strict_identity_crops": true,
+  "crop_profile": "strict",
+  "crops_per_track": 6,
+  "device": "mps",
+  "crop_filter_rejected": {
+    "blurry": 1018,
+    "multi_pig": 8504,
+    "edge_partial": 2727,
+    "bad_aspect": 653,
+    "no_ink": 394
+  }
+}
